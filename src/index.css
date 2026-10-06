@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root { min-height: 100%; }
+body { margin: 0; background: #f6faf7; color: #1e293b; -webkit-tap-highlight-color: transparent; }
+button { cursor: pointer; }
+* { box-sizing: border-box; }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+@keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 rgba(220,38,38,.7); } 100% { box-shadow: 0 0 0 28px rgba(220,38,38,0); } }
+.pulse-ring { animation: pulse-ring 1.2s infinite; }
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

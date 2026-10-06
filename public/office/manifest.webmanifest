@@ -1,0 +1,38 @@
+{
+  "id": "/office/",
+  "name": "Nurserylelo Office",
+  "short_name": "Office",
+  "description": "Nurserylelo admin panel.",
+  "start_url": "/office/",
+  "scope": "/office/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#334155",
+  "lang": "hi",
+  "dir": "auto",
+  "categories": [
+    "shopping",
+    "lifestyle"
+  ],
+  "icons": [
+    {
+      "src": "/icons/office-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/office-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/office-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
