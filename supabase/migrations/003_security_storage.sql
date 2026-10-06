@@ -63,6 +63,7 @@ drop policy if exists p_audit_admin on public.audit;
 create policy p_audit_admin on public.audit for select to authenticated using (public.is_admin());
 
 -- ---- Views (owner ke haq se chalte hain, isliye legal_name/customer phone chhupa kar sirf zaruri columns dete hain) ----
+drop view if exists public.public_plants;
 create or replace view public.public_plants as
 select p.id, p.nursery_id, p.sku, p.name, p.category, p.price, p.stock, p.image, p.care, p.festival_tags, p.status, p.created_at,
        n.brand_name, n.partner_type as nursery_partner_type, n.tier, n.lat as nursery_lat, n.lng as nursery_lng

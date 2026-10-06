@@ -5,7 +5,7 @@ import { useLive } from '../../../components/hooks';
 import { Badge, Button, PhotoThumb, Spinner, toast } from '../../../components/ui';
 import { pickName, useLang } from '../../../lib/i18n';
 import { rupees } from '../../../lib/format';
-import { config } from '../../../config';
+import { config, SITE_DOMAIN } from '../../../config';
 import { useCart, useLoc, useWishlist } from '../stores';
 
 export default function PlantPage() {
@@ -20,11 +20,12 @@ export default function PlantPage() {
   if (loading) return <Spinner />;
   const p = data?.find((x) => x.id === id);
   if (!p) return <div className="p-6 text-center text-slate-500">{t('empty')}<div className="mt-3"><Button onClick={() => nav('/')}>{t('home')}</Button></div></div>;
-  const wa = 'https://wa.me/?text=' + encodeURIComponent(pickName(p.name, lang) + ' - ' + rupees(p.price) + ' | ' + p.brandName + ' | Nurserylelo ' + location.origin);
+  const wa = 'https://wa.me/?text=' + encodeURIComponent(pickName(p.name, lang) + ' - ' + rupees(p.price) + ' | ' + p.brandName + ' | ' + SITE_DOMAIN + ' ' + location.origin);
   return (
     <div>
       <div className="relative">
         <PhotoThumb src={p.image} className="h-64 w-full" />
+        {p.ribbon ? <span className="absolute left-0 top-14 rounded-r-full bg-red-600 px-3 py-1 text-xs font-extrabold uppercase text-white shadow">{p.ribbon}</span> : null}
         <button onClick={() => nav(-1)} className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1.5 font-bold shadow">←</button>
         <button onClick={() => wish.toggle(p.id)} className="absolute right-3 top-3 rounded-full bg-white/90 px-3 py-1.5 text-lg shadow">{wish.has(p.id) ? '❤️' : '🤍'}</button>
       </div>

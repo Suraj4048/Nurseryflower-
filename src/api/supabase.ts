@@ -8,7 +8,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { APP, config } from '../config';
 import type { Api } from './types';
 import type {
-  AdminPlant, Application, AuditRow, Complaint, DeliveryPartner, DocFile, DocType, Earnings, NewPlantInput, Nursery, Order, PlaceOrderInput,
+  AdminPlant, Application, AuditRow, Booking, MyBooking, ProviderJob, ProviderOption, ServiceDef, Availability, CategoryDef, CustomForm, Lead, LeadStatus, Slideshow, Complaint, DeliveryPartner, DocFile, DocType, Earnings, NewPlantInput, Nursery, Order, PlaceOrderInput,
   Plant, PublicPlant, Rule, Settings, User,
 } from '../lib/types';
 import { roadKm } from '../lib/geo';
@@ -18,7 +18,7 @@ import { sendOtp, verifyOtp } from '../integrations/otp';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Row = Record<string, any>;
-const PARTNER_DOMAIN = 'partners.nurserylelo.com';
+const PARTNER_DOMAIN = 'partners.nurseryflower.com';
 const ms = (s?: string | null) => (s ? Date.parse(s) : 0);
 const msOpt = (s?: string | null) => (s ? Date.parse(s) : undefined);
 
@@ -44,11 +44,14 @@ const toNursery = (r: Row): Nursery => ({
   id: r.id, uniqueId: r.unique_id, partnerType: r.partner_type, legalName: r.legal_name, brandName: r.brand_name, seoAliases: r.seo_aliases ?? [], ownerPhone: r.owner_phone ?? '',
   lat: r.lat, lng: r.lng, city: r.city, isOpen: r.is_open, tier: r.tier, probationEndsOn: r.probation_ends_on ?? undefined, licenceNo: r.licence_no ?? undefined,
   licenceExpiry: r.licence_expiry ?? undefined, gstin: r.gstin ?? undefined, status: r.status, createdAt: ms(r.created_at),
+  startingPrice: r.starting_price != null ? Number(r.starting_price) : undefined, serviceRadiusKm: r.service_radius_km != null ? Number(r.service_radius_km) : undefined,
+  bio: r.bio ?? '', blockedDates: r.blocked_dates ?? [], priority: r.priority ?? 0,
 });
 const toPlant = (r: Row): Plant => ({
-  id: r.id, nurseryId: r.nursery_id, sku: r.sku, name: r.name, category: r.category, price: Number(r.price), stock: r.stock, image: r.image ?? '', care: r.care ?? '',
+  id: r.id, nurseryId: r.nursery_id, sku: r.sku, name: r.name, category: r.category, categories: r.categories?.length ? r.categories : [r.category], ribbon: r.ribbon ?? undefined, price: Number(r.price), stock: r.stock, image: r.image ?? '', care: r.care ?? '',
   festivalTags: r.festival_tags ?? [], status: r.status, rejectReason: r.reject_reason ?? undefined, createdAt: ms(r.created_at),
 });
+const toCat = (r: Row): CategoryDef => ({ key: r.key, name: r.name ?? {}, emoji: r.emoji ?? '🌱', active: r.active, order: r.sort_order ?? 0 });
 const toOrder = (r: Row): Order => ({
   id: r.id, shortId: r.short_id, customerId: r.customer_id, customerName: r.customer_name ?? '', customerPhone: r.customer_phone ?? '', nurseryId: r.nursery_id,
   nurseryBrand: r.nursery_brand, triedNurseryIds: r.tried_nursery_ids ?? [], items: r.items ?? [], subtotal: Number(r.subtotal), deliveryFee: Number(r.delivery_fee),
@@ -63,8 +66,32 @@ const toRule = (r: Row): Rule => ({
   partnerType: r.partner_type, allowedIdDocs: r.allowed_id_docs, requiredDocs: r.required_docs, licenceRequired: r.licence_required, gstRequired: r.gst_required,
   allowedCategories: r.allowed_categories, maxLiveProbation: r.max_live_probation,
 });
+const toService = (r: Row): ServiceDef => ({
+  key: r.key, kind: r.kind, name: r.name ?? {}, sub: r.sub ?? {}, emoji: r.emoji ?? '🧰', startingPrice: Number(r.starting_price), tokenPercent: r.token_percent, minNoticeHours: r.min_notice_hours,
+  dailyCapacity: r.daily_capacity, commissionPercent: r.commission_percent, needsTime: r.needs_time, enabled: r.enabled, order: r.sort_order ?? 0,
+});
+const toBooking = (r: Row): Booking => ({
+  id: r.id, shortId: r.short_id, serviceKey: r.service_key, serviceName: r.service_name ?? '', customerId: r.customer_id ?? undefined, customerName: r.customer_name, customerPhone: r.customer_phone,
+  date: r.date, time: r.time ?? '', venue: r.venue, pincode: r.pincode ?? '', lat: r.lat ?? undefined, lng: r.lng ?? undefined, remarks: r.remarks ?? '', photo: r.photo ?? undefined,
+  status: r.status, createdAt: ms(r.created_at), updatedAt: ms(r.updated_at), ownerDueAt: ms(r.owner_due_at), calledAt: msOpt(r.called_at), agreedAmount: Number(r.agreed_amount),
+  tokenPercent: r.token_percent, tokenAmount: Number(r.token_amount), tokenClaimedAt: msOpt(r.token_claimed_at), tokenPaidAt: msOpt(r.token_paid_at), handler: r.handler,
+  providerId: r.provider_id ?? undefined, providerBrand: r.provider_brand ?? undefined, providerState: r.provider_state ?? undefined, commissionPercent: r.commission_percent,
+  refundAmount: r.refund_amount != null ? Number(r.refund_amount) : undefined, cancelledBy: r.cancelled_by ?? undefined, cancelReason: r.cancel_reason ?? undefined, note: r.note ?? '', events: r.events ?? [],
+});
+const toMyBooking = (r: Row): MyBooking => ({
+  id: r.id, shortId: r.short_id, serviceKey: r.service_key, serviceName: r.service_name ?? '', customerName: r.customer_name, customerPhone: r.customer_phone, date: r.date, time: r.time ?? '',
+  venue: r.venue, pincode: r.pincode ?? '', remarks: r.remarks ?? '', photo: r.photo ?? undefined, status: r.status, createdAt: ms(r.created_at), updatedAt: ms(r.updated_at),
+  ownerDueAt: ms(r.owner_due_at), calledAt: msOpt(r.called_at), agreedAmount: Number(r.agreed_amount), tokenPercent: r.token_percent, tokenAmount: Number(r.token_amount),
+  tokenClaimedAt: msOpt(r.token_claimed_at), tokenPaidAt: msOpt(r.token_paid_at), handler: r.handler, refundAmount: r.refund_amount != null ? Number(r.refund_amount) : undefined,
+  cancelledBy: r.cancelled_by ?? undefined, cancelReason: r.cancel_reason ?? undefined,
+  provider: r.provider_brand ? { brand: r.provider_brand, phone: r.provider_phone ?? '' } : undefined, supportPhone: config.supportWhatsApp,
+});
+const toJob = (r: Row): ProviderJob => ({
+  id: r.id, shortId: r.short_id, serviceKey: r.service_key, serviceName: r.service_name ?? '', date: r.date, time: r.time ?? '', venue: r.venue, pincode: r.pincode ?? '', remarks: r.remarks ?? '',
+  photo: r.photo ?? undefined, status: r.status, providerState: r.provider_state, tokenPaid: !!r.token_paid, amount: Number(r.amount ?? 0), createdAt: ms(r.created_at),
+});
 const toSettings = (r: Row): Settings => ({
-  acceptSeconds: r.accept_seconds, cancelSeconds: r.cancel_seconds, probationDays: r.probation_days, payoutHoldDays: r.payout_hold_days, slaHours: r.sla_hours, split: r.split,
+  acceptSeconds: r.accept_seconds, cancelSeconds: r.cancel_seconds, probationDays: r.probation_days, payoutHoldDays: r.payout_hold_days, slaHours: r.sla_hours, confirmHours: r.confirm_hours ?? 24, refund72: r.refund_72 ?? 80, refund24: r.refund_24 ?? 50, refundLow: r.refund_low ?? 0, split: r.split,
 });
 const toComplaint = (r: Row): Complaint => ({
   id: r.id, orderId: r.order_id, customerId: r.customer_id, reason: r.reason, photo: r.photo ?? undefined, status: r.status, resolution: r.resolution ?? undefined, createdAt: ms(r.created_at),
@@ -138,7 +165,7 @@ function startBackground(c: SupabaseClient) {
 function ensureChannel() {
   if (channel) return;
   let ch = sb().channel('nl-changes');
-  for (const table of ['orders', 'plants', 'nurseries', 'applications', 'complaints', 'profiles']) ch = ch.on('postgres_changes', { event: '*', schema: 'public', table }, () => fire());
+  for (const table of ['orders', 'plants', 'nurseries', 'applications', 'complaints', 'profiles', 'bookings', 'services']) ch = ch.on('postgres_changes', { event: '*', schema: 'public', table }, () => fire());
   channel = ch.subscribe();
 }
 
@@ -199,6 +226,46 @@ export const supabaseApi: Api = {
   async listDeliveryPartners() { return ((ok(await sb().from('delivery_partners').select('*').eq('active', true)) as Row[]) ?? []).map(toDP); },
   async getSettings() { return toSettings(ok(await sb().from('settings').select('*').eq('id', 1).single()) as Row); },
 
+  // ---- services & bookings ----
+  async listServices() { return ((ok(await sb().from('services').select('*').eq('enabled', true).order('sort_order')) as Row[]) ?? []).map(toService); },
+  async checkAvailability(serviceKey, date, time) {
+    const r = ok(await sb().rpc('booking_availability', { p_service: serviceKey, p_date: date, p_time: time ?? '' })) as Row;
+    return { ok: !!r.ok, reason: r.reason, left: r.left ?? 0, minDate: r.minDate } as Availability;
+  },
+  async submitBooking(i) {
+    const sid = ok(await sb().rpc('submit_booking', {
+      p_service: i.serviceKey, p_name: i.name, p_phone: i.phone, p_date: i.date, p_time: i.time, p_venue: i.venue, p_pincode: i.pincode ?? '', p_remarks: i.remarks ?? '',
+      p_photo: i.photo ?? null, p_lat: i.lat ?? null, p_lng: i.lng ?? null,
+    })) as string;
+    return { shortId: sid };
+  },
+  async myBookings() { return ((ok(await sb().rpc('my_bookings')) as Row[]) ?? []).map(toMyBooking); },
+  async cancelMyBooking(id) { return { refund: Number(ok(await sb().rpc('cancel_my_booking', { p_id: id }))) }; },
+  async claimTokenPaid(id) { ok(await sb().rpc('claim_token_paid', { p_id: id })); },
+
+  // ---- partner: jobs & profile ----
+  async myJobs() { return ((ok(await sb().from('partner_jobs').select('*').order('date')) as Row[]) ?? []).map(toJob); },
+  async respondJob(id, action) { ok(await sb().rpc('respond_job', { p_id: id, p_action: action })); },
+  async updateMyProfile(patch) { ok(await sb().rpc('update_my_profile', { p_patch: patch })); },
+
+  // ---- admin: services & bookings ----
+  async adminServices() { return ((ok(await sb().from('services').select('*').order('sort_order')) as Row[]) ?? []).map(toService); },
+  async adminSaveService(sv) {
+    ok(await sb().from('services').update({
+      name: sv.name, sub: sv.sub, emoji: sv.emoji, starting_price: sv.startingPrice, token_percent: sv.tokenPercent, min_notice_hours: sv.minNoticeHours, daily_capacity: sv.dailyCapacity,
+      commission_percent: sv.commissionPercent, needs_time: sv.needsTime, enabled: sv.enabled, sort_order: sv.order,
+    }).eq('key', sv.key));
+  },
+  async adminBookings() { return ((ok(await sb().from('bookings').select('*').order('created_at', { ascending: false }).limit(500)) as Row[]) ?? []).map(toBooking); },
+  async adminUpdateBooking(id, patch) { ok(await sb().rpc('admin_update_booking', { p_id: id, p_patch: patch })); },
+  async adminBookingCalled(id) { ok(await sb().rpc('admin_booking_called', { p_id: id })); },
+  async adminBookingConfirm(id, amount) { ok(await sb().rpc('admin_booking_confirm', { p_id: id, p_amount: amount })); },
+  async adminBookingTokenPaid(id) { ok(await sb().rpc('admin_booking_token_paid', { p_id: id })); },
+  async adminBookingAssign(id, providerId) { ok(await sb().rpc('admin_booking_assign', { p_id: id, p_provider: providerId })); },
+  async adminBookingDone(id) { ok(await sb().rpc('admin_booking_done', { p_id: id })); },
+  async adminBookingCancel(id, by, reason) { return { refund: Number(ok(await sb().rpc('admin_booking_cancel', { p_id: id, p_by: by, p_reason: reason }))) }; },
+  async adminProvidersFor(bookingId) { return (ok(await sb().rpc('admin_providers_for', { p_booking: bookingId })) as ProviderOption[]) ?? []; },
+
   // ---- customer ----
   async placeOrders(input: PlaceOrderInput) {
     const rows = ok(await sb().rpc('place_orders', {
@@ -233,7 +300,7 @@ export const supabaseApi: Api = {
     if (!(input.price > 0)) throw new Error('Sahi price daalo');
     const image = await plantImage(input.image);
     ok(await sb().from('plants').insert({
-      nursery_id: nid, sku: input.sku || skuOf(input.name), name: input.name, category: input.category, price: input.price, stock: input.stock, image, care: input.care ?? '',
+      nursery_id: nid, sku: input.sku || skuOf(input.name), name: input.name, category: (input.categories?.[0] ?? input.category), categories: input.categories?.length ? input.categories : [input.category], ribbon: input.ribbon || null, price: input.price, stock: input.stock, image, care: input.care ?? '',
       festival_tags: input.festivalTags ?? [], status: 'pending',
     }));
   },
@@ -289,6 +356,10 @@ export const supabaseApi: Api = {
     const upd: Row = {};
     if (patch.checklist) upd.checklist = patch.checklist;
     if (patch.reviewNote !== undefined) upd.review_note = patch.reviewNote;
+    const edits: Record<string, string> = { shopName: 'shop_name', brandSuggestion: 'brand_suggestion', ownerName: 'owner_name', phone: 'phone', whatsapp: 'whatsapp', address: 'address', city: 'city', pincode: 'pincode', upiId: 'upi_id', gstin: 'gstin', licenceNo: 'licence_no', licenceExpiry: 'licence_expiry' };
+    const edited: string[] = [];
+    for (const [k, col] of Object.entries(edits)) { const v = (patch as Record<string, unknown>)[k]; if (v !== undefined) { upd[col] = col === 'licence_expiry' && !v ? null : v; edited.push(k); } }
+    if (edited.length) await sb().rpc('audit_log', { p_action: 'application_edit', p_detail: id + ': ' + edited.join(',') }).then(() => undefined, () => undefined);
     if (patch.status === 'under_review') {
       const cur = ok(await sb().from('applications').select('status').eq('id', id).single()) as Row;
       if (cur.status === 'submitted') upd.status = 'under_review';
@@ -322,6 +393,62 @@ export const supabaseApi: Api = {
     return toNursery(r as Row);
   },
   async adminSetNurseryStatus(id, status) { ok(await sb().from('nurseries').update({ status, ...(status === 'blocked' ? { is_open: false } : {}) }).eq('id', id)); },
+  async listCategories() {
+    const rows = (ok(await sb().from('categories').select('*').eq('active', true).order('sort_order')) as Row[]) ?? [];
+    return rows.map(toCat);
+  },
+  async listForms() { return ((ok(await sb().from('forms').select('*').eq('enabled', true).order('created_at')) as Row[]) ?? []).map((r) => ({ ...(r.data as CustomForm), id: r.id, enabled: true })).filter((f) => f.fields?.length); },
+  async submitLead(input) { ok(await sb().rpc('submit_lead', { p_form: input.formId, p_name: input.name, p_phone: input.phone, p_answers: input.answers })); },
+  async adminAllForms() { return ((ok(await sb().from('forms').select('*').order('created_at')) as Row[]) ?? []).map((r) => ({ ...(r.data as CustomForm), id: r.id, enabled: r.enabled })); },
+  async adminSaveForm(f) {
+    if (!f.name.trim()) throw new Error('Form ka naam daalo');
+    if (f.fields.length === 0) throw new Error('Kam se kam ek field jodo');
+    for (const fl of f.fields) if (['select', 'radio', 'checkbox'].includes(fl.type) && !(fl.options && fl.options.length)) throw new Error('Is field ke vikalp (options) daalo');
+    ok(await sb().from('forms').upsert({ id: f.id, data: f, enabled: f.enabled }));
+  },
+  async adminDeleteForm(id) { ok(await sb().from('forms').delete().eq('id', id)); },
+  async adminLeads() {
+    const rows = (ok(await sb().from('leads').select('*').order('created_at', { ascending: false }).limit(500)) as Row[]) ?? [];
+    return rows.map((r): Lead => ({ id: r.id, formId: r.form_id, formName: r.form_name ?? '', name: r.name, phone: r.phone, answers: r.answers ?? [], status: r.status as LeadStatus, note: r.note ?? '', createdAt: ms(r.created_at), updatedAt: ms(r.updated_at) }));
+  },
+  async adminUpdateLead(id, patch) {
+    const m: Row = { updated_at: new Date().toISOString() };
+    if (patch.status) m.status = patch.status; if (patch.note !== undefined) m.note = patch.note;
+    ok(await sb().from('leads').update(m).eq('id', id));
+  },
+  async adminDeleteLead(id) { ok(await sb().from('leads').delete().eq('id', id)); },
+  async adminAllCategories() { return ((ok(await sb().from('categories').select('*').order('sort_order')) as Row[]) ?? []).map(toCat); },
+  async adminSaveCategory(c) { ok(await sb().from('categories').upsert({ key: c.key, name: c.name, emoji: c.emoji, active: c.active, sort_order: c.order })); },
+  async adminDeleteCategory(key) {
+    const used = ok(await sb().from('plants').select('id').contains('categories', [key]).limit(1)) as Row[];
+    if (used.length) throw new Error('Is category me products hain. Pehle unhe dusri category me daalo ya category ko off karo.');
+    ok(await sb().from('categories').delete().eq('key', key));
+  },
+  async listSlideshows() { return ((ok(await sb().from('slideshows').select('*').eq('enabled', true)) as Row[]) ?? []).map((r) => ({ ...(r.data as Slideshow), id: r.id, enabled: true })).filter((x) => x.slides?.length); },
+  async adminAllSlideshows() { return ((ok(await sb().from('slideshows').select('*').order('created_at')) as Row[]) ?? []).map((r) => ({ ...(r.data as Slideshow), id: r.id, enabled: r.enabled })); },
+  async adminSaveSlideshow(x) { ok(await sb().from('slideshows').upsert({ id: x.id, data: x, enabled: x.enabled })); },
+  async adminDeleteSlideshow(id) { ok(await sb().from('slideshows').delete().eq('id', id)); },
+  async adminUpdateNursery(id, patch) {
+    const m: Row = {};
+    if (patch.legalName !== undefined) m.legal_name = patch.legalName; if (patch.brandName !== undefined) m.brand_name = patch.brandName;
+    if (patch.ownerPhone !== undefined) m.owner_phone = patch.ownerPhone; if (patch.lat !== undefined) m.lat = patch.lat; if (patch.lng !== undefined) m.lng = patch.lng;
+    if (patch.city !== undefined) m.city = patch.city; if (patch.partnerType !== undefined) m.partner_type = patch.partnerType; if (patch.tier !== undefined) m.tier = patch.tier;
+    if (patch.licenceNo !== undefined) m.licence_no = patch.licenceNo || null; if (patch.licenceExpiry !== undefined) m.licence_expiry = patch.licenceExpiry || null; if (patch.gstin !== undefined) m.gstin = patch.gstin || null;
+    if (patch.startingPrice !== undefined) m.starting_price = patch.startingPrice; if (patch.serviceRadiusKm !== undefined) m.service_radius_km = patch.serviceRadiusKm;
+    if (patch.bio !== undefined) m.bio = patch.bio; if (patch.blockedDates !== undefined) m.blocked_dates = patch.blockedDates; if (patch.priority !== undefined) m.priority = patch.priority;
+    ok(await sb().from('nurseries').update(m).eq('id', id));
+  },
+  async adminUpdatePlant(id, patch) {
+    const m: Row = {};
+    if (patch.name !== undefined) m.name = patch.name;
+    if (patch.categories !== undefined) { m.categories = patch.categories; m.category = patch.categories[0]; }
+    if (patch.ribbon !== undefined) m.ribbon = patch.ribbon || null;
+    if (patch.price !== undefined) m.price = patch.price; if (patch.stock !== undefined) m.stock = patch.stock;
+    if (patch.image !== undefined) m.image = await plantImage(patch.image);
+    if (patch.care !== undefined) m.care = patch.care; if (patch.festivalTags !== undefined) m.festival_tags = patch.festivalTags;
+    ok(await sb().from('plants').update(m).eq('id', id));
+  },
+  async adminSetNurseryOpen(id, open) { ok(await sb().from('nurseries').update({ is_open: open }).eq('id', id)); },
   async adminPlants() {
     const rows = (ok(await sb().from('plants').select('*, nurseries(brand_name, unique_id)').order('created_at', { ascending: false })) as Row[]) ?? [];
     return rows.map((r): AdminPlant => ({ ...toPlant(r), nurseryBrand: r.nurseries?.brand_name ?? '', nurseryUid: r.nurseries?.unique_id ?? '' }));
@@ -332,7 +459,7 @@ export const supabaseApi: Api = {
     if (!(input.price > 0)) throw new Error('Sahi price daalo');
     const image = await plantImage(input.image);
     ok(await sb().from('plants').insert({
-      nursery_id: nurseryId, sku: input.sku || skuOf(input.name), name: input.name, category: input.category, price: input.price, stock: input.stock, image, care: input.care ?? '',
+      nursery_id: nurseryId, sku: input.sku || skuOf(input.name), name: input.name, category: (input.categories?.[0] ?? input.category), categories: input.categories?.length ? input.categories : [input.category], ribbon: input.ribbon || null, price: input.price, stock: input.stock, image, care: input.care ?? '',
       festival_tags: input.festivalTags ?? [], status: goLive ? 'live' : 'pending',
     }));
   },
@@ -355,7 +482,7 @@ export const supabaseApi: Api = {
   },
   async adminSaveSettings(s) {
     ok(await sb().from('settings').update({
-      accept_seconds: s.acceptSeconds, cancel_seconds: s.cancelSeconds, probation_days: s.probationDays, payout_hold_days: s.payoutHoldDays, sla_hours: s.slaHours, split: s.split,
+      accept_seconds: s.acceptSeconds, cancel_seconds: s.cancelSeconds, probation_days: s.probationDays, payout_hold_days: s.payoutHoldDays, sla_hours: s.slaHours, confirm_hours: s.confirmHours, refund_72: s.refund72, refund_24: s.refund24, refund_low: s.refundLow, split: s.split,
     }).eq('id', 1));
   },
   async adminAudit() {

@@ -1,14 +1,14 @@
 # DEPLOY: GitHub -> Cloudflare Pages / Vercel -> Supabase
 
 ## A. GitHub par daalna (Codespaces se)
-1. github.com par **naya empty repository** banao (naam: `nurserylelo`, Private).
+1. github.com par **naya empty repository** banao (naam: `nurseryflower`, Private).
 2. Repo page par **Code > Codespaces > Create codespace on main**.
 3. Codespace ke left Explorer me **ZIP upload** karo (drag & drop), phir terminal me:
    ```bash
-   unzip nurserylelo.zip -d tmp && cp -r tmp/nurserylelo/. . && rm -rf tmp nurserylelo.zip
+   unzip nurseryflower.zip -d tmp && cp -r tmp/nurseryflower/. . && rm -rf tmp nurseryflower.zip
    npm install
    npm run build        # check: dist/ ban gaya?
-   git add -A && git commit -m "Nurserylelo first version" && git push origin main
+   git add -A && git commit -m "NurseryFlower first version" && git push origin main
    ```
    (Agar branch ka naam `master` hai to `git push origin master`.)
 

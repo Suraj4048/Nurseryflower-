@@ -17,6 +17,8 @@ function Detail({ a, rule, onClose }: { a: Application; rule?: Rule; onClose: ()
   const [check, setCheck] = useState<Record<string, boolean>>(a.checklist);
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [ef, setEf] = useState({ shopName: a.shopName, ownerName: a.ownerName, phone: a.phone, whatsapp: a.whatsapp, address: a.address, city: a.city, pincode: a.pincode, upiId: a.upiId, gstin: a.gstin, licenceNo: a.licenceNo, licenceExpiry: a.licenceExpiry });
   const done = a.status === 'approved' || a.status === 'rejected';
   const run = async (fn: () => Promise<void>, ok: string, close = true) => { setBusy(true); try { await fn(); toast(ok); if (close) onClose(); } catch (e) { toastErr(e); } setBusy(false); };
   const showDoc = async (type: string) => { try { setUrls({ ...urls, [type]: await api.adminDocUrl(a.id, type) }); } catch (e) { toastErr(e); } };
@@ -31,6 +33,17 @@ function Detail({ a, rule, onClose }: { a: Application; rule?: Rule; onClose: ()
         <div><b>UPI:</b> {a.upiId || '-'}</div><div><b>GST:</b> {a.gstin || '-'}</div>
         <div><b>Licence:</b> {a.licenceNo || '-'} {a.licenceExpiry}</div><div><b>Language:</b> {a.language}</div>
         <div className="col-span-2"><b>Consent:</b> {fmtDate(a.consentAt)}</div>
+      </div>
+      <div>
+        <Button size="sm" variant="secondary" onClick={() => setEditing(!editing)} data-testid="app-edit">✏️ {editing ? 'Edit band karo' : 'Edit details'}</Button>
+        {editing ? (
+          <div className="mt-2 grid grid-cols-2 gap-2 rounded-xl bg-slate-50 p-2" data-testid="app-edit-form">
+            {(['shopName', 'ownerName', 'phone', 'whatsapp', 'address', 'city', 'pincode', 'upiId', 'gstin', 'licenceNo', 'licenceExpiry'] as const).map((k) => (
+              <Field key={k} label={k}><Input value={ef[k]} onChange={(e) => setEf({ ...ef, [k]: e.target.value })} data-testid={'ae-' + k} /></Field>
+            ))}
+            <Button className="col-span-2" loading={busy} onClick={() => run(() => api.adminUpdateApplication(a.id, ef), 'Details update (audit me likha gaya)', false)} data-testid="app-edit-save">Save details</Button>
+          </div>
+        ) : null}
       </div>
       <div>
         <div className="mb-1 font-bold">Documents</div>

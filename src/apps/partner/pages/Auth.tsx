@@ -9,7 +9,7 @@ import { config } from '../../../config';
 function Frame({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="space-y-4 p-6">
-      <div className="mt-4 text-center"><div className="text-6xl">🌳</div><h1 className="text-2xl font-extrabold text-leaf-800">Nurserylelo Godown</h1><p className="text-lg font-bold">{title}</p></div>
+      <div className="mt-4 text-center"><div className="text-6xl">🌳</div><h1 className="text-2xl font-extrabold text-leaf-800">NurseryFlower Godown</h1><p className="text-lg font-bold">{title}</p></div>
       {children}
     </div>
   );

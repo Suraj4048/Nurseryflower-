@@ -8,6 +8,8 @@ import { fmtDate, mmss, rupees } from '../../../lib/format';
 import { useLang } from '../../../lib/i18n';
 import { config } from '../../../config';
 import { useUser } from '../ctx';
+import { useCart, useLoc } from '../stores';
+import { SITE_DOMAIN } from '../../../config';
 
 export function OrderList() {
   const { t } = useLang();
@@ -19,6 +21,7 @@ export function OrderList() {
   return (
     <div className="space-y-2 p-3">
       <h2 className="text-xl font-extrabold">{t('your_orders')}</h2>
+      <Link to="/bookings" className="block rounded-xl bg-leaf-50 p-2 text-center text-sm font-bold text-leaf-800">📅 {t('bk_my')}</Link>
       {[...data].sort((a, b) => b.createdAt - a.createdAt).map((o) => (
         <Link key={o.id} to={'/orders/' + o.id} className="block">
           <Card>
@@ -44,6 +47,8 @@ export function OrderDetail() {
   const [claim, setClaim] = useState(false);
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
+  const cart = useCart();
+  const { loc } = useLoc();
   if (loading) return <Spinner />;
   const o = data?.find((x) => x.id === id);
   if (!o) return <Empty text={t('empty')} />;
@@ -54,6 +59,15 @@ export function OrderDetail() {
     setBusy(true);
     try { await fn(); toast(ok); await reload(); } catch (e) { toastErr(e); }
     setBusy(false);
+  };
+  const reorder = async () => {
+    const avail = await api.listPublicPlants(loc);
+    let n = 0;
+    for (const it of o.items) {
+      const match = avail.filter((p) => p.sku === it.sku && p.stock >= it.qty).sort((a, b) => a.distanceKm - b.distanceKm)[0];
+      if (match) { cart.add(match.id, it.qty); n++; }
+    }
+    if (n) { toast(t('reorder_added', { n })); nav('/cart'); } else toast(t('reorder_none'), 'err');
   };
   const upi = async () => {
     const r = await startOnlinePayment(o.total, o.shortId);
@@ -106,6 +120,10 @@ export function OrderDetail() {
           <Button variant="secondary" onClick={() => setClaim(true)}>🌱 {t('claim_replacement')}</Button>
         </Card>
       ) : null}
+      <div className="flex gap-2">
+        <Button className="flex-1" variant="secondary" onClick={reorder}>🔁 {t('reorder')}</Button>
+        <a className="flex-1 rounded-xl border border-slate-200 py-2.5 text-center text-sm font-semibold" target="_blank" rel="noreferrer" href={`https://wa.me/?text=${encodeURIComponent('Order #' + o.shortId + ' - ' + o.items.map((i) => i.name + ' x' + i.qty).join(', ') + ' | ' + rupees(o.total) + ' | ' + SITE_DOMAIN)}`}>💬 {t('share_whatsapp')}</a>
+      </div>
       <a className="block text-center text-sm font-semibold text-leaf-700" href={`https://wa.me/${config.supportWhatsApp}?text=${encodeURIComponent('Order #' + o.shortId)}`} target="_blank" rel="noreferrer">💬 {t('support')}</a>
       <Modal open={claim} onClose={() => setClaim(false)} title={t('claim_replacement')}>
         <TextArea rows={3} value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t('complaint_reason')} />

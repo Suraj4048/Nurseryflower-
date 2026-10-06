@@ -32,3 +32,16 @@ export function dataUrlToBlob(dataUrl: string): Blob {
 }
 
 export const isDataUrl = (s: string) => s.startsWith('data:') || s.startsWith('http');
+
+/** Photo ko itna chhota karta hai ki size maxKB (default 100KB) se zyada na ho. Quality aur size dono ghatata hai. */
+export async function compressToMaxKB(file: File, maxKB = 100, startSide = 1000): Promise<string> {
+  const bytes = (d: string) => Math.round((d.length - d.indexOf(',') - 1) * 0.75);
+  let side = startSide;
+  let quality = 0.8;
+  let out = await compressImage(file, side, quality);
+  for (let i = 0; i < 14 && bytes(out) > maxKB * 1024; i++) {
+    if (quality > 0.4) quality -= 0.1; else { side = Math.round(side * 0.8); quality = 0.6; }
+    out = await compressImage(file, side, quality);
+  }
+  return out;
+}

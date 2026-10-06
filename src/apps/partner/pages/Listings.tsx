@@ -2,10 +2,11 @@ import { useRef, useState } from 'react';
 import { api } from '../../../api';
 import { useLive } from '../../../components/hooks';
 import { Badge, Button, Card, Empty, Field, Input, Modal, PhotoThumb, Select, Spinner, TextArea, toast, toastErr } from '../../../components/ui';
-import { compressImage } from '../../../lib/image';
+import { compressToMaxKB } from '../../../lib/image';
+import { CategoryPicker, RIBBONS } from '../../../components/CategoryPicker';
 import { pickName, useLang } from '../../../lib/i18n';
 import { rupees } from '../../../lib/format';
-import { CATEGORIES, CATEGORY_EMOJI, type Category } from '../../../lib/types';
+import { CATEGORY_EMOJI } from '../../../lib/types';
 
 export default function Listings() {
   const { t, lang } = useLang();
@@ -13,7 +14,8 @@ export default function Listings() {
   const rule = useLive(() => api.myRule(), []);
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
-  const [cat, setCat] = useState<Category>('indoor');
+  const [cats, setCats] = useState<string[]>([]);
+  const [ribbon, setRibbon] = useState('');
   const [price, setPrice] = useState('');
   const [stock, setStock] = useState('10');
   const [care, setCare] = useState('');
@@ -21,23 +23,23 @@ export default function Listings() {
   const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   if (plants.loading) return <Spinner />;
-  const cats = rule.data?.allowedCategories ?? CATEGORIES;
+  const allowed = rule.data?.allowedCategories;
 
   const setStk = async (id: string, v: number) => { try { await api.setStock(id, Math.max(0, v)); await plants.reload(); } catch (e) { toastErr(e); } };
   const add = async () => {
     const p = Number(price); const s = Number(stock);
-    if (!name.trim() || !(p > 0) || !(s >= 0)) return toast(t('missing_fields'), 'err');
+    if (!name.trim() || !(p > 0) || !(s >= 0) || cats.length === 0) return toast(t('missing_fields'), 'err');
     setBusy(true);
     try {
-      await api.addMyPlant({ name: { en: name.trim(), [lang]: name.trim() }, category: cat, price: p, stock: s, image: img || CATEGORY_EMOJI[cat], care });
-      toast(t('add_product_note')); setOpen(false); setName(''); setPrice(''); setCare(''); setImg(''); await plants.reload();
+      await api.addMyPlant({ name: { en: name.trim(), [lang]: name.trim() }, category: cats[0], categories: cats, ribbon: ribbon || undefined, price: p, stock: s, image: img || CATEGORY_EMOJI[cats[0]] || '🌱', care });
+      toast(t('add_product_note')); setOpen(false); setName(''); setCats([]); setRibbon(''); setPrice(''); setCare(''); setImg(''); await plants.reload();
     } catch (e) { toastErr(e); }
     setBusy(false);
   };
 
   return (
     <div className="space-y-3 p-4">
-      <div className="flex items-center justify-between"><h1 className="text-2xl font-extrabold">🪴 {t('my_listings')}</h1><Button onClick={() => { setCat(cats[0]); setOpen(true); }}>＋ {t('add_product')}</Button></div>
+      <div className="flex items-center justify-between"><h1 className="text-2xl font-extrabold">🪴 {t('my_listings')}</h1><Button onClick={() => setOpen(true)}>＋ {t('add_product')}</Button></div>
       <p className="rounded-lg bg-amber-50 p-2 text-xs text-amber-900">{t('add_product_note')}</p>
       {(plants.data ?? []).length === 0 ? <Empty text={t('no_products')} /> : null}
       {(plants.data ?? []).map((p) => (
@@ -61,13 +63,14 @@ export default function Listings() {
       <Modal open={open} onClose={() => setOpen(false)} title={t('add_product')}>
         <div className="space-y-3">
           <Field label={t('product_name')}><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
-          <Field label={t('category')}><Select value={cat} onChange={(e) => setCat(e.target.value as Category)}>{cats.map((c) => <option key={c} value={c}>{t('cat_' + c)}</option>)}</Select></Field>
+          <Field label={t('category')}><CategoryPicker value={cats} onChange={setCats} allowed={allowed} /></Field>
+          <Field label="Ribbon"><Select value={ribbon} onChange={(e) => setRibbon(e.target.value)}>{RIBBONS.map((r) => <option key={r} value={r}>{r || '-'}</option>)}</Select></Field>
           <div className="grid grid-cols-2 gap-2">
             <Field label={t('price_rs')}><Input value={price} inputMode="numeric" onChange={(e) => setPrice(e.target.value)} /></Field>
             <Field label={t('stock_qty')}><Input value={stock} inputMode="numeric" onChange={(e) => setStock(e.target.value)} /></Field>
           </div>
           <Field label={t('care_tips_opt')}><TextArea rows={2} value={care} onChange={(e) => setCare(e.target.value)} /></Field>
-          <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={async (e) => { const f = e.target.files?.[0]; if (f) { try { setImg(await compressImage(f, 600, 0.6)); } catch (er) { toastErr(er); } } }} />
+          <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={async (e) => { const f = e.target.files?.[0]; if (f) { try { setImg(await compressToMaxKB(f, 100, 800)); } catch (er) { toastErr(er); } } }} />
           <div className="flex items-center gap-3">{img ? <img src={img} alt="" className="h-16 w-16 rounded-lg object-cover" /> : null}<Button variant="secondary" onClick={() => fileRef.current?.click()}>📷 {t('upload_photo')}</Button></div>
           <Button block size="lg" loading={busy} onClick={add}>{t('submit')}</Button>
         </div>

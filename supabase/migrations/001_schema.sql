@@ -1,5 +1,5 @@
 -- ============================================================
--- Nurserylelo: schema. Supabase Dashboard > SQL Editor me paste karke RUN karo (001 -> 002 -> 003 -> 004 ke order me).
+-- NurseryFlower: schema. Supabase Dashboard > SQL Editor me paste karke RUN karo (001 -> 002 -> 003 -> 004 ke order me).
 -- Ya sirf ek file: supabase/ALL_IN_ONE.sql
 -- ============================================================
 create extension if not exists pgcrypto;

@@ -1,8 +1,8 @@
 {
   "id": "/office/",
-  "name": "Nurserylelo Office",
+  "name": "NurseryFlower Office",
   "short_name": "Office",
-  "description": "Nurserylelo admin panel.",
+  "description": "NurseryFlower admin panel.",
   "start_url": "/office/",
   "scope": "/office/",
   "display": "standalone",

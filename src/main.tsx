@@ -6,6 +6,7 @@ import { APP } from './config';
 import { DemoGate, Toaster } from './components/ui';
 import { registerServiceWorker } from './integrations/push';
 import './lib/locales_more';
+import './lib/locales_p3';
 import ShowroomApp from './apps/showroom/App';
 import PartnerApp from './apps/partner/App';
 import OfficeApp from './apps/office/App';

@@ -4,7 +4,7 @@ import { api } from '../../../api';
 import { useLive } from '../../../components/hooks';
 import { Button, Card, Field, Input, Spinner, toast, toastErr } from '../../../components/ui';
 import { getMyLocation } from '../../../lib/geo';
-import { compressImage } from '../../../lib/image';
+import { compressToMaxKB } from '../../../lib/image';
 import { useLang } from '../../../lib/i18n';
 import { isPhone } from '../../../lib/format';
 import { PARTNER_TYPES, PARTNER_TYPE_EMOJI, type Application, type DocFile, type DocType, type PartnerType, type Rule } from '../../../lib/types';
@@ -54,7 +54,7 @@ export default function Join() {
 
   const addDoc = async (f: File, ty: DocType) => {
     try {
-      const thumb = await compressImage(f, 700, 0.6);
+      const thumb = await compressToMaxKB(f, 100, 800);
       let gps: DocFile['gps'];
       try { gps = await getMyLocation(); } catch { /* optional */ }
       const isId = rule.allowedIdDocs.includes(ty);

@@ -31,3 +31,15 @@ export function getMyLocation(): Promise<{ lat: number; lng: number }> {
     );
   });
 }
+
+/** Lat/lng se shehar/area ka naam (free BigDataCloud, koi key nahi). Na mile to fallback label. */
+export async function placeName(lat: number, lng: number, fallback: string): Promise<string> {
+  try {
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 4000);
+    const r = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`, { signal: ctl.signal });
+    clearTimeout(t);
+    const j = (await r.json()) as { locality?: string; city?: string; principalSubdivision?: string };
+    return j.locality || j.city || j.principalSubdivision || fallback;
+  } catch { return fallback; }
+}

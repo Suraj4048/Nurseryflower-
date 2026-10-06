@@ -1,5 +1,5 @@
 // ============================================================
-// Nurserylelo central config. Baad me real keys/providers yahi se (aur .env se) badlenge.
+// NurseryFlower central config. Baad me real keys/providers yahi se (aur .env se) badlenge.
 // ============================================================
 const env = import.meta.env as Record<string, string | undefined>;
 
@@ -7,7 +7,7 @@ export type AppName = 'showroom' | 'partner' | 'office';
 export const APP: AppName = ((window as unknown as { __APP__?: AppName }).__APP__) ?? 'showroom';
 
 export const config = {
-  brand: 'Nurserylelo',
+  brand: 'NurseryFlower',
   /** demo = browser me chalta hai; supabase = asli backend */
   mode: (env.VITE_MODE ?? 'demo') as 'demo' | 'supabase',
   supabaseUrl: env.VITE_SUPABASE_URL ?? '',
@@ -31,3 +31,6 @@ export const config = {
 };
 
 export const isDemo = config.mode === 'demo';
+
+/** Asli website ka naam (share text, SEO, footer). Domain badle to sirf yaha badlo. */
+export const SITE_DOMAIN = 'nurseryflower.com';

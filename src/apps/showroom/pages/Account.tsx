@@ -19,6 +19,7 @@ export default function Account() {
           <Button variant="ghost" size="sm" onClick={logout}>{t('logout')}</Button>
         </Card>
       ) : <Button block size="lg" onClick={() => nav('/login')}>{t('login')}</Button>}
+      <button onClick={() => nav('/bookings')} className="block w-full rounded-2xl border border-leaf-200 bg-leaf-50 p-4 text-center font-bold text-leaf-800" data-testid="acc-bookings">📅 {t('bk_my')}</button>
       <a href="/partner/#/join" className="block rounded-2xl bg-leaf-700 p-4 text-center font-bold text-white">🌳 {t('become_partner')}</a>
       <Card><div className="mb-2 font-bold">🌐 {t('language_change')}</div><LangGrid /></Card>
       <a className="block rounded-2xl border border-slate-200 p-4 text-center font-semibold" href={`https://wa.me/${config.supportWhatsApp}`} target="_blank" rel="noreferrer">💬 {t('support')}</a>

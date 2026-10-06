@@ -3,13 +3,14 @@ import { api } from '../../../api';
 import { useLive } from '../../../components/hooks';
 import { Button, Card, Field, Input, Spinner, toast, toastErr } from '../../../components/ui';
 import { fmtDate } from '../../../lib/format';
-import { CATEGORIES, ID_DOCS, type Category, type DocType, type Rule, type Settings } from '../../../lib/types';
+import { ID_DOCS, type Category, type DocType, type Rule, type Settings } from '../../../lib/types';
 
 const toggle = <T,>(arr: T[], v: T) => (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
 const REQ_DOCS: DocType[] = ['shop_photo_front', 'shop_photo_inside', 'home_garden_photo', 'selfie', 'fertilizer_licence', 'seed_licence', 'gst_certificate'];
 
 function RuleCard({ rule, onSaved }: { rule: Rule; onSaved: () => void }) {
   const [r, setR] = useState(rule);
+  const cats = useLive(() => api.adminAllCategories(), []);
   const save = async () => { try { await api.adminUpdateRule(r); toast('Rule save'); onSaved(); } catch (e) { toastErr(e); } };
   const chip = (on: boolean) => 'rounded-full border px-2 py-0.5 text-xs font-semibold ' + (on ? 'border-leaf-600 bg-leaf-50 text-leaf-800' : 'border-slate-200 text-slate-500');
   return (
@@ -17,7 +18,7 @@ function RuleCard({ rule, onSaved }: { rule: Rule; onSaved: () => void }) {
       <div className="text-lg font-bold">{r.partnerType}</div>
       <div><div className="text-xs font-bold text-slate-500">Chalne wali ID (koi ek)</div><div className="flex flex-wrap gap-1">{ID_DOCS.map((d) => <button key={d} className={chip(r.allowedIdDocs.includes(d))} onClick={() => setR({ ...r, allowedIdDocs: toggle(r.allowedIdDocs, d) })}>{d}</button>)}</div></div>
       <div><div className="text-xs font-bold text-slate-500">Zaruri documents/photos</div><div className="flex flex-wrap gap-1">{REQ_DOCS.map((d) => <button key={d} className={chip(r.requiredDocs.includes(d))} onClick={() => setR({ ...r, requiredDocs: toggle(r.requiredDocs, d) })}>{d}</button>)}</div></div>
-      <div><div className="text-xs font-bold text-slate-500">Allowed categories</div><div className="flex flex-wrap gap-1">{CATEGORIES.map((c) => <button key={c} className={chip(r.allowedCategories.includes(c as Category))} onClick={() => setR({ ...r, allowedCategories: toggle(r.allowedCategories, c as Category) })}>{c}</button>)}</div></div>
+      <div><div className="text-xs font-bold text-slate-500">Allowed categories</div><div className="flex flex-wrap gap-1">{(cats.data ?? []).map((c) => <button key={c.key} className={chip(r.allowedCategories.includes(c.key as Category))} onClick={() => setR({ ...r, allowedCategories: toggle(r.allowedCategories, c.key as Category) })}>{c.emoji} {c.key}</button>)}</div></div>
       <div className="flex flex-wrap items-center gap-4 text-sm">
         <label className="flex items-center gap-1"><input type="checkbox" checked={r.licenceRequired} onChange={(e) => setR({ ...r, licenceRequired: e.target.checked })} />Licence zaruri</label>
         <label className="flex items-center gap-1"><input type="checkbox" checked={r.gstRequired} onChange={(e) => setR({ ...r, gstRequired: e.target.checked })} />GST zaruri</label>
@@ -51,6 +52,8 @@ export function SettingsPage() {
       <Card className="space-y-2">
         {num('acceptSeconds', 'Partner accept timer (seconds)')}{num('cancelSeconds', 'Customer cancel window (seconds)')}{num('probationDays', 'Probation (days)')}
         {num('payoutHoldDays', 'Payout hold (days)')}{num('slaHours', 'Application review SLA (hours)')}
+        <div className="rounded-xl bg-slate-50 p-2"><div className="mb-1 text-xs font-bold text-slate-500">Service bookings</div>
+          {num('confirmHours', 'Owner confirm timer (ghante)')}{num('refund72', 'Customer cancel 72+ ghante pehle: token refund %')}{num('refund24', 'Customer cancel 24-72 ghante: refund %')}{num('refundLow', 'Customer cancel 24 ghante se kam: refund %')}</div>
         <div className="grid grid-cols-3 gap-2">
           <Field label="Nursery %"><Input type="number" value={sp.nursery} onChange={(e) => setS({ ...cur, split: { ...sp, nursery: Number(e.target.value) } })} /></Field>
           <Field label="Platform %"><Input type="number" value={sp.platform} onChange={(e) => setS({ ...cur, split: { ...sp, platform: Number(e.target.value) } })} /></Field>

@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "Nurserylelo",
-  "short_name": "Nurserylelo",
-  "description": "Paudhe, beej aur khaad ghar tak: Nurserylelo Showroom.",
+  "name": "NurseryFlower",
+  "short_name": "NurseryFlower",
+  "description": "Paudhe, beej aur khaad ghar tak: NurseryFlower Showroom.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

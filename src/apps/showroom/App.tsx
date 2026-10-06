@@ -4,7 +4,8 @@ import { useSession } from '../../components/hooks';
 import { DemoBanner, LangGrid, Modal } from '../../components/ui';
 import { hasChosenLang, useLang } from '../../lib/i18n';
 import { SessionCtx } from './ctx';
-import { useCart, useLoc } from './stores';
+import { detectAndSetLocation, useCart, useLoc } from './stores';
+import { toast, toastErr } from '../../components/ui';
 import Home from './pages/Home';
 import PlantPage from './pages/PlantPage';
 import CartPage from './pages/CartPage';
@@ -14,6 +15,9 @@ import Identify from './pages/Identify';
 import Account from './pages/Account';
 import Login from './pages/Login';
 import Wishlist from './pages/Wishlist';
+import { FormHost } from './FormSheet';
+import { BookingHost } from './BookingSheet';
+import Bookings from './pages/Bookings';
 
 function LangGate({ onDone }: { onDone: () => void }) {
   const { t } = useLang();
@@ -21,7 +25,7 @@ function LangGate({ onDone }: { onDone: () => void }) {
     <div className="mx-auto min-h-screen max-w-lg p-5">
       <div className="mb-6 mt-8 text-center">
         <div className="text-6xl">🌿</div>
-        <h1 className="mt-2 text-3xl font-extrabold text-leaf-800">Nurserylelo</h1>
+        <h1 className="mt-2 text-3xl font-extrabold text-leaf-800">NurseryFlower</h1>
         <p className="mt-4 text-xl font-bold">{t('lang_title')}</p>
         <p className="text-sm text-slate-500">{t('lang_sub')}</p>
       </div>
@@ -41,8 +45,9 @@ function Shell({ children }: { children: React.ReactNode }) {
     <div className="mx-auto min-h-screen max-w-2xl bg-white pb-20 shadow-sm">
       <DemoBanner />
       <header className="sticky top-0 z-30 flex items-center gap-2 border-b border-slate-100 bg-white/95 px-3 py-2.5 backdrop-blur">
-        <Link to="/" className="text-xl font-extrabold text-leaf-700">🌿 Nurserylelo</Link>
-        <span className="ml-auto rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">📍 {loc.label}</span>
+        <Link to="/" className="text-xl font-extrabold text-leaf-700">🌿 NurseryFlower</Link>
+        <button onClick={async () => { try { const l = await detectAndSetLocation(t('current_location')); toast(t('location_set') + ': ' + l.label); } catch (e) { toastErr(e); } }}
+          className="ml-auto max-w-[9rem] truncate rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600" title={t('use_my_location')}>📍 {loc.label}</button>
         <button onClick={() => setLangOpen(true)} className="rounded-full bg-slate-100 px-2.5 py-1 text-sm" aria-label="language">🌐</button>
         <button onClick={() => nav('/cart')} className="relative rounded-full bg-leaf-50 px-3 py-1.5 text-lg" aria-label="cart">
           🛒{cart.count > 0 ? <span className="absolute -right-1 -top-1 rounded-full bg-red-600 px-1.5 text-[10px] font-bold text-white">{cart.count}</span> : null}
@@ -56,6 +61,8 @@ function Shell({ children }: { children: React.ReactNode }) {
         <NavLink to="/orders" className={tab}><span className="text-xl">📦</span>{t('my_orders')}</NavLink>
         <NavLink to="/account" className={tab}><span className="text-xl">👤</span>{t('account')}</NavLink>
       </nav>
+      <FormHost />
+      <BookingHost />
       <Modal open={langOpen} onClose={() => setLangOpen(false)} title={t('lang_title')}>
         <LangGrid onPick={() => setLangOpen(false)} />
       </Modal>
@@ -78,6 +85,7 @@ export default function App() {
           <Route path="/orders" element={<OrderList />} />
           <Route path="/orders/:id" element={<OrderDetail />} />
           <Route path="/identify" element={<Identify />} />
+          <Route path="/bookings" element={<Bookings />} />
           <Route path="/wishlist" element={<Wishlist />} />
           <Route path="/account" element={<Account />} />
           <Route path="/login" element={<Login />} />

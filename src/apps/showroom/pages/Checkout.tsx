@@ -3,18 +3,18 @@ import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../../../api';
 import { useLive } from '../../../components/hooks';
 import { Button, Card, Empty, Field, Input, Select, Spinner, TextArea, toast, toastErr } from '../../../components/ui';
-import { cheapestPartner, deliveryFee, getMyLocation, roadKm } from '../../../lib/geo';
+import { cheapestPartner, deliveryFee, roadKm } from '../../../lib/geo';
 import { pickName, useLang } from '../../../lib/i18n';
 import { rupees } from '../../../lib/format';
 import { useUser } from '../ctx';
-import { useCart, useLoc } from '../stores';
+import { detectAndSetLocation, useCart, useLoc } from '../stores';
 
 export default function Checkout() {
   const { t, lang } = useLang();
   const nav = useNavigate();
   const { user } = useUser();
   const cart = useCart();
-  const { loc, setLoc } = useLoc();
+  const { loc } = useLoc();
   const plants = useLive(() => api.listPublicPlants(loc), [loc.lat, loc.lng]);
   const dps = useLive(() => api.listDeliveryPartners(), []);
   const [address, setAddress] = useState('');
@@ -54,8 +54,8 @@ export default function Checkout() {
     );
   }
 
-  const useLocation = async () => {
-    try { const p = await getMyLocation(); setLoc({ ...p, label: t('use_my_location') }); toast(t('location_set')); } catch (e) { toastErr(e); }
+  const detect = async () => {
+    try { const l = await detectAndSetLocation(t('current_location')); toast(t('location_set') + ': ' + l.label); } catch (e) { toastErr(e); }
   };
   const place = async () => {
     if (address.trim().length < 6) return toast(t('add_address'), 'err');
@@ -77,7 +77,7 @@ export default function Checkout() {
         <div className="font-bold">📍 {t('delivery_to')}</div>
         <Field label={t('address')}><TextArea rows={3} value={address} onChange={(e) => setAddress(e.target.value)} placeholder={t('address_hint')} /></Field>
         <Field label={t('pincode')}><Input value={pincode} onChange={(e) => setPincode(e.target.value)} inputMode="numeric" maxLength={6} /></Field>
-        <Button variant="secondary" size="sm" onClick={useLocation}>📍 {t('use_my_location')}</Button>
+        <Button variant="secondary" size="sm" onClick={detect}>📍 {t('use_my_location')}</Button>
       </Card>
       <Card className="space-y-3">
         <Field label={t('delivery_partner')} hint={t('fee_note')}>

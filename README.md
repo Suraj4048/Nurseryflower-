@@ -1,4 +1,4 @@
-# Nurserylelo: poora codebase (Showroom + Godown + Office)
+# NurseryFlower: poora codebase (Showroom + Godown + Office)
 
 Ek hi project, teen installable PWA:
 
